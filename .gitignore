@@ -1,0 +1,13 @@
+Ignore the virtual environment folder
+
+.venv/
+venv/
+
+Ignore environment variables (Contains API Key - IMPORTANT)
+
+.env
+
+Ignore compiled python files
+
+pycache/
+*.pyc
