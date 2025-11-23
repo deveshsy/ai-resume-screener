@@ -17,18 +17,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CUSTOM CSS (THEME ADAPTIVE) ---
+# --- CUSTOM CSS (STATIC HEADER - SCROLLS AWAY) ---
 st.markdown("""
     <style>
     /* --- GLOBAL THEME ADAPTATION --- */
-    /* We use Streamlit's internal CSS variables so the app looks 
-       perfect in both Light and Dark modes automatically. */
     
-    /* STICKY HEADER */
+    /* STATIC HEADER */
+    /* Changed from 'fixed' to standard flow so it scrolls away */
     .header-container {
-        position: fixed;
-        top: 0;
-        left: 0;
         width: 100%;
         
         /* Use the Theme's Background Color */
@@ -37,9 +33,12 @@ st.markdown("""
         /* Use the Theme's Text Color */
         color: var(--text-color);
         
-        padding: 20px 2rem;
-        border-bottom: 1px solid rgba(150, 150, 150, 0.2); /* Subtle adaptive border */
-        z-index: 99999;
+        padding: 30px 2rem 20px 2rem;
+        border-bottom: 1px solid rgba(150, 150, 150, 0.2);
+        
+        /* Pull it up to the very top of the page */
+        margin-top: -70px; 
+        margin-bottom: 20px;
         
         /* CENTER ALIGNMENT */
         display: flex;
@@ -48,17 +47,17 @@ st.markdown("""
         justify-content: center;
         text-align: center;
     }
-    
+
     /* HEADER TYPOGRAPHY */
     .header-title {
-        color: var(--text-color); /* Adapts to theme */
+        color: var(--text-color);
         font-size: 2.5rem;
         font-weight: 800;
         margin: 0;
         line-height: 1.2;
     }
     .header-sub {
-        color: var(--primary-color); /* Uses Streamlit's primary accent color */
+        color: var(--primary-color);
         font-size: 1rem;
         font-weight: 600;
         margin: 5px 0 0 0;
@@ -67,25 +66,38 @@ st.markdown("""
     }
     .header-desc {
         color: var(--text-color);
-        opacity: 0.8; /* Slightly dimmer than main text */
+        opacity: 0.8;
         font-size: 0.9rem;
         margin: 5px 0 0 0;
     }
 
     /* PADDING ADJUSTMENT */
+    /* Reset padding since header is no longer floating */
     .block-container {
-        padding-top: 170px !important; 
+        padding-top: 2rem !important; 
         padding-bottom: 80px !important; 
     }
     
-    /* HIDE DEFAULT HEADER */
+    /* --- SIDEBAR & DEFAULT HEADER --- */
+    
+    /* Make default header transparent so hamburger button is visible 
+       but doesn't block the custom header look */
     header[data-testid="stHeader"] {
-        display: none;
+        background-color: transparent;
+        border: none;
     }
     
-    /* CARDS (METRICS & STEPS) */
-    /* We use 'secondary-background-color' which is Light Grey in Light Mode 
-       and Dark Grey in Dark Mode */
+    /* Hide the colored top decoration line */
+    [data-testid="stDecoration"] {
+        display: none;
+    }
+
+    /* Ensure Sidebar is on top */
+    [data-testid="stSidebar"] {
+        z-index: 999999 !important;
+    }
+
+    /* --- CARDS & UI --- */
     .metric-card {
         background-color: var(--secondary-background-color);
         padding: 20px;
@@ -135,7 +147,6 @@ st.markdown("""
         z-index: 99999;
     }
     
-    /* BUTTON STYLING */
     .stButton>button {
         width: 100%;
         border-radius: 5px;
@@ -175,7 +186,7 @@ with st.sidebar:
     else:
         st.success("✅ API Key loaded.")
 
-# --- STICKY HEADER (THEME AWARE) ---
+# --- HEADER (SCROLLS WITH PAGE) ---
 st.markdown("""
     <div class="header-container">
         <h1 class="header-title">AlignAI</h1>
@@ -210,7 +221,7 @@ with step_col2:
         </div>
         """, unsafe_allow_html=True)
 
-st.write("") # Spacer
+st.write("") 
 
 # --- HELPER FUNCTIONS ---
 def extract_text_from_file(uploaded_file):
@@ -291,7 +302,6 @@ if st.session_state.analysis_result:
     
     with col_score:
         score = result.get('match_score', 0)
-        # Dynamic color calculation
         score_color = '#28a745' if score > 70 else '#ffa500' if score > 50 else '#dc3545'
         
         st.markdown(f"""
@@ -329,7 +339,7 @@ if st.session_state.analysis_result:
     if not missing:
         st.info("Nothing to optimize! Your resume is well-matched.")
     else:
-        st.markdown("Select skills you possess and **add context** so the AI can write true bullets, not fake ones.")
+        st.markdown("Select skills you possess and **add context** so the AI can update each section of your resume.")
         
         with st.form("optimization_form"):
             col_sel, col_txt = st.columns([1, 1])
@@ -341,33 +351,44 @@ if st.session_state.analysis_result:
                 # User context input
                 user_context = st.text_area(
                     "2. Add Context/Proof (Crucial):", 
-                    placeholder="E.g. I used Python at Company X to build a scraper...",
+                    placeholder="E.g. I have experience with Python for 2 years and used it for automation...",
                     height=100
                 )
 
             generate_btn = st.form_submit_button("✨ Generate Optimized Resume Content")
 
         if generate_btn and selected_skills:
-            with st.spinner("🤖 Phase 2: Agent is rewriting sections..."):
+            with st.spinner("🤖 Phase 2: Agent is analyzing and rewriting specific sections..."):
                 try:
+                    # --- UPDATED PROMPT LOGIC ---
                     opt_prompt = f"""
-                    You are an expert Resume Writer.
-                    The user has a resume but failed to mention these specific skills: {selected_skills}.
+                    You are an expert Resume Strategist.
                     
-                    USER CONTEXT/ACHIEVEMENTS (Use this to write the bullets):
-                    "{user_context}"
+                    INPUT DATA:
+                    1. USER'S OLD RESUME: {st.session_state.resume_text[:15000]}
+                    2. TARGET JOB DESCRIPTION (JD): {st.session_state.job_description[:5000]}
+                    3. MISSING KEYWORDS USER ACTUALLY HAS: {selected_skills}
+                    4. USER'S ADDED CONTEXT: "{user_context}"
+
+                    YOUR TASK:
+                    Rewrite specific sections of the resume to align with the JD, integrating the missing keywords naturally.
+                    Do NOT invent false information. Only use the User's Context and the Old Resume.
+
+                    OUTPUT FORMAT (Markdown):
                     
-                    TASK:
-                    1. Identify the best section in their resume to insert these skills.
-                    2. Write specific, professional bullet points using the skills and the user's provided context.
+                    ### 1. Optimized Profile / Summary
+                    (Rewrite the "About" or "Profile" section to focus on the JD's role. Incorporate the missing skills if they fit here conceptually.)
                     
-                    OUTPUT FORMAT:
-                    Provide 2 options.
-                    Option 1: A rewrite of an existing bullet point.
-                    Option 2: A new "Skills" or "Summary" line.
-                    Use Markdown for bolding the keywords.
+                    ### 2. Updated Skills Section
+                    (Provide a clean list of skills to Copy/Paste. Add the selected missing keywords to the appropriate category. Remove irrelevant legacy skills if the list is too long.)
                     
-                    RESUME: {st.session_state.resume_text[:15000]}
+                    ### 3. Optimized Bullet Points (Experience/Projects)
+                    (Identify 2-3 specific bullet points from the resume that can be upgraded. Rewrite them to include the missing keywords and use strong action verbs. Highlight the keywords in **bold**.)
+                    
+                    STRICT RULES:
+                    - Do not mention "Here is the rewritten section". Just give the content.
+                    - If the user context is insufficient for a bullet point, do not fake a number.
+                    - Keep the tone professional.
                     """
                     
                     client = OpenAI(api_key=api_key)
@@ -377,8 +398,8 @@ if st.session_state.analysis_result:
                         temperature=0.4
                     )
                     
-                    st.success("✅ Content Generated! Copy these snippets into your resume:")
-                    st.markdown("### 📋 Suggested Edits")
+                    st.success("✅ Content Generated! Copy these sections directly into your resume editor:")
+                    st.markdown("---")
                     st.markdown(opt_response.choices[0].message.content)
                     
                 except Exception as e:
