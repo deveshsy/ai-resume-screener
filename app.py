@@ -17,106 +17,131 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CUSTOM CSS ---
+# --- CUSTOM CSS (THEME ADAPTIVE) ---
 st.markdown("""
     <style>
-    .main {
-        background-color: #f8f9fa;
-    }
+    /* --- GLOBAL THEME ADAPTATION --- */
+    /* We use Streamlit's internal CSS variables so the app looks 
+       perfect in both Light and Dark modes automatically. */
     
-    /* STICKY HEADER CONFIGURATION */
+    /* STICKY HEADER */
     .header-container {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        background-color: #ffffff;
-        padding: 15px 2rem;
-        border-bottom: 1px solid #e1e4e8;
-        z-index: 9999; /* Ensures it stays on top */
-        text-align: left; /* Left align like Gemini */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        
+        /* Use the Theme's Background Color */
+        background-color: var(--background-color);
+        
+        /* Use the Theme's Text Color */
+        color: var(--text-color);
+        
+        padding: 20px 2rem;
+        border-bottom: 1px solid rgba(150, 150, 150, 0.2); /* Subtle adaptive border */
+        z-index: 99999;
+        
+        /* CENTER ALIGNMENT */
         display: flex;
         flex-direction: column;
+        align-items: center; 
         justify-content: center;
+        text-align: center;
     }
     
-    /* Adjust Streamlit's default top padding so content isn't hidden behind the header */
-    .block-container {
-        padding-top: 140px !important; 
-    }
-    
-    /* Hide the default Streamlit rainbow decoration bar for a cleaner look */
-    header[data-testid="stHeader"] {
-        display: none;
-    }
-
-    /* TYPOGRAPHY IN HEADER */
+    /* HEADER TYPOGRAPHY */
     .header-title {
-        color: #2e3b4e;
-        font-size: 2rem;
+        color: var(--text-color); /* Adapts to theme */
+        font-size: 2.5rem;
         font-weight: 800;
         margin: 0;
         line-height: 1.2;
-        letter-spacing: -0.5px;
     }
     .header-sub {
-        color: #007bff;
-        font-size: 0.9rem;
+        color: var(--primary-color); /* Uses Streamlit's primary accent color */
+        font-size: 1rem;
         font-weight: 600;
-        margin: 0;
+        margin: 5px 0 0 0;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
     .header-desc {
-        color: #6c757d;
-        font-size: 0.85rem;
-        margin: 2px 0 0 0;
+        color: var(--text-color);
+        opacity: 0.8; /* Slightly dimmer than main text */
+        font-size: 0.9rem;
+        margin: 5px 0 0 0;
+    }
+
+    /* PADDING ADJUSTMENT */
+    .block-container {
+        padding-top: 170px !important; 
+        padding-bottom: 80px !important; 
     }
     
-    /* STANDARD UI ELEMENTS */
+    /* HIDE DEFAULT HEADER */
+    header[data-testid="stHeader"] {
+        display: none;
+    }
+    
+    /* CARDS (METRICS & STEPS) */
+    /* We use 'secondary-background-color' which is Light Grey in Light Mode 
+       and Dark Grey in Dark Mode */
+    .metric-card {
+        background-color: var(--secondary-background-color);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        border: 1px solid rgba(150, 150, 150, 0.1);
+    }
+    .metric-card h2 {
+        color: var(--text-color) !important;
+    }
+    .metric-card p {
+        color: var(--text-color) !important;
+        opacity: 0.7;
+    }
+    
+    .step-card {
+        background-color: var(--secondary-background-color);
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 5px solid var(--primary-color);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        color: var(--text-color);
+    }
+    
+    .step-card-locked {
+        background-color: var(--secondary-background-color);
+        opacity: 0.5;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 5px solid gray;
+        color: var(--text-color);
+    }
+    
+    /* STICKY FOOTER */
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        opacity: 0.6;
+        text-align: center;
+        padding: 15px;
+        border-top: 1px solid rgba(150, 150, 150, 0.2);
+        font-size: 14px;
+        z-index: 99999;
+    }
+    
+    /* BUTTON STYLING */
     .stButton>button {
         width: 100%;
         border-radius: 5px;
         height: 3em;
         font-weight: bold;
     }
-    .metric-card {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-    .step-card {
-        background-color: #ffffff;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 5px solid #007bff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .step-card-locked {
-        background-color: #e9ecef;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 5px solid #6c757d;
-        color: #6c757d;
-    }
-    .footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: #ffffff;
-        color: #888;
-        text-align: center;
-        padding: 10px;
-        border-top: 1px solid #e1e4e8;
-        font-size: 14px;
-        z-index: 100;
-    }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -150,7 +175,7 @@ with st.sidebar:
     else:
         st.success("✅ API Key loaded.")
 
-# --- STICKY HEADER SECTION ---
+# --- STICKY HEADER (THEME AWARE) ---
 st.markdown("""
     <div class="header-container">
         <h1 class="header-title">AlignAI</h1>
@@ -266,9 +291,12 @@ if st.session_state.analysis_result:
     
     with col_score:
         score = result.get('match_score', 0)
+        # Dynamic color calculation
+        score_color = '#28a745' if score > 70 else '#ffa500' if score > 50 else '#dc3545'
+        
         st.markdown(f"""
             <div class="metric-card">
-                <h2 style="font-size: 3rem; margin:0; color: {'#28a745' if score > 70 else '#ffa500' if score > 50 else '#dc3545'};">{score}%</h2>
+                <h2 style="font-size: 3rem; margin:0; color: {score_color} !important;">{score}%</h2>
                 <p style="margin:0;">Match Score</p>
             </div>
         """, unsafe_allow_html=True)
@@ -310,7 +338,7 @@ if st.session_state.analysis_result:
                 selected_skills = st.multiselect("1. I possess these skills:", missing)
             
             with col_txt:
-                # NEW FEATURE: User context input
+                # User context input
                 user_context = st.text_area(
                     "2. Add Context/Proof (Crucial):", 
                     placeholder="E.g. I used Python at Company X to build a scraper...",
@@ -322,7 +350,6 @@ if st.session_state.analysis_result:
         if generate_btn and selected_skills:
             with st.spinner("🤖 Phase 2: Agent is rewriting sections..."):
                 try:
-                    # UPDATED PROMPT with User Context
                     opt_prompt = f"""
                     You are an expert Resume Writer.
                     The user has a resume but failed to mention these specific skills: {selected_skills}.
@@ -362,5 +389,4 @@ st.markdown("""
     <div class="footer">
         <p>AlignAI by Devesh Singh Yadav | Powered by OpenAI & Streamlit</p>
     </div>
-    <div style="margin-bottom: 50px;"></div> 
 """, unsafe_allow_html=True)
